@@ -1,0 +1,326 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>django.contrib.gis.geos.linestring &#8212; Django 1.10.6.dev20170223092614 documentation</title>
+    
+    <link rel="stylesheet" href="../../../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../../',
+        VERSION:     '1.10.6.dev20170223092614',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+
+
+
+ 
+<script type="text/javascript" src="../../../../../templatebuiltins.js"></script>
+<script type="text/javascript">
+(function($) {
+    if (!django_template_builtins) {
+       // templatebuiltins.js missing, do nothing.
+       return;
+    }
+    $(document).ready(function() {
+        // Hyperlink Django template tags and filters
+        var base = "../../../../../ref/templates/builtins.html";
+        if (base == "#") {
+            // Special case for builtins.html itself
+            base = "";
+        }
+        // Tags are keywords, class '.k'
+        $("div.highlight\\-html\\+django span.k").each(function(i, elem) {
+             var tagname = $(elem).text();
+             if ($.inArray(tagname, django_template_builtins.ttags) != -1) {
+                 var fragment = tagname.replace(/_/, '-');
+                 $(elem).html("<a href='" + base + "#" + fragment + "'>" + tagname + "</a>");
+             }
+        });
+        // Filters are functions, class '.nf'
+        $("div.highlight\\-html\\+django span.nf").each(function(i, elem) {
+             var filtername = $(elem).text();
+             if ($.inArray(filtername, django_template_builtins.tfilters) != -1) {
+                 var fragment = filtername.replace(/_/, '-');
+                 $(elem).html("<a href='" + base + "#" + fragment + "'>" + filtername + "</a>");
+             }
+        });
+    });
+})(jQuery);
+</script>
+
+
+  </head>
+  <body role="document">
+
+    <div class="document">
+  <div id="custom-doc" class="yui-t6">
+    <div id="hd">
+      <h1><a href="../../../../../index.html">Django 1.10.6.dev20170223092614 documentation</a></h1>
+      <div id="global-nav">
+        <a title="Home page" href="../../../../../index.html">Home</a>  |
+        <a title="Table of contents" href="../../../../../contents.html">Table of contents</a>  |
+        <a title="Global index" href="../../../../../genindex.html">Index</a>  |
+        <a title="Module index" href="../../../../../py-modindex.html">Modules</a>
+      </div>
+      <div class="nav">
+    <a href="../../../../index.html" title="Module code" accesskey="U">up</a></div>
+    </div>
+
+    <div id="bd">
+      <div id="yui-main">
+        <div class="yui-b">
+          <div class="yui-g" id="_modules-django-contrib-gis-geos-linestring">
+            
+  <h1>Source code for django.contrib.gis.geos.linestring</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">django.contrib.gis.geos</span> <span class="k">import</span> <span class="n">prototypes</span> <span class="k">as</span> <span class="n">capi</span>
+<span class="kn">from</span> <span class="nn">django.contrib.gis.geos.coordseq</span> <span class="k">import</span> <span class="n">GEOSCoordSeq</span>
+<span class="kn">from</span> <span class="nn">django.contrib.gis.geos.error</span> <span class="k">import</span> <span class="n">GEOSException</span>
+<span class="kn">from</span> <span class="nn">django.contrib.gis.geos.geometry</span> <span class="k">import</span> <span class="n">GEOSGeometry</span><span class="p">,</span> <span class="n">LinearGeometryMixin</span>
+<span class="kn">from</span> <span class="nn">django.contrib.gis.geos.point</span> <span class="k">import</span> <span class="n">Point</span>
+<span class="kn">from</span> <span class="nn">django.contrib.gis.shortcuts</span> <span class="k">import</span> <span class="n">numpy</span>
+<span class="kn">from</span> <span class="nn">django.utils.six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+
+
+<div class="viewcode-block" id="LineString"><a class="viewcode-back" href="../../../../../ref/contrib/gis/geos.html#django.contrib.gis.geos.LineString">[docs]</a><span class="k">class</span> <span class="nc">LineString</span><span class="p">(</span><span class="n">LinearGeometryMixin</span><span class="p">,</span> <span class="n">GEOSGeometry</span><span class="p">):</span>
+    <span class="n">_init_func</span> <span class="o">=</span> <span class="n">capi</span><span class="o">.</span><span class="n">create_linestring</span>
+    <span class="n">_minlength</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">has_cs</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes on the given sequence -- may take lists, tuples, NumPy arrays</span>
+<span class="sd">        of X,Y pairs, or Point objects.  If Point objects are used, ownership is</span>
+<span class="sd">        _not_ transferred to the LineString object.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">         ls = LineString((1, 1), (2, 2))</span>
+<span class="sd">         ls = LineString([(1, 1), (2, 2)])</span>
+<span class="sd">         ls = LineString(array([(1, 1), (2, 2)]))</span>
+<span class="sd">         ls = LineString(Point(1, 1), Point(2, 2))</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># If only one argument provided, set the coords array appropriately</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="n">args</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">))</span> <span class="ow">or</span> <span class="n">numpy</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Invalid initialization input for LineStrings.&#39;</span><span class="p">)</span>
+
+        <span class="c1"># If SRID was passed in with the keyword arguments</span>
+        <span class="n">srid</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;srid&#39;</span><span class="p">)</span>
+
+        <span class="n">ncoords</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">ncoords</span><span class="p">:</span>
+            <span class="nb">super</span><span class="p">(</span><span class="n">LineString</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_func</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">srid</span><span class="o">=</span><span class="n">srid</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">ncoords</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minlength</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> requires at least </span><span class="si">%d</span><span class="s1"> points, got </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_minlength</span><span class="p">,</span>
+                    <span class="n">ncoords</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="c1"># Getting the number of coords and the number of dimensions -- which</span>
+            <span class="c1">#  must stay the same, e.g., no LineString((1, 2), (1, 2, 3)).</span>
+            <span class="n">ndim</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="c1"># Incrementing through each of the coordinates and verifying</span>
+            <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">Point</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Each coordinate should be a sequence (list or tuple)&#39;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">ndim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_checkdim</span><span class="p">(</span><span class="n">ndim</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span> <span class="o">!=</span> <span class="n">ndim</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Dimension mismatch.&#39;</span><span class="p">)</span>
+            <span class="n">numpy_coords</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">shape</span> <span class="o">=</span> <span class="n">coords</span><span class="o">.</span><span class="n">shape</span>  <span class="c1"># Using numpy&#39;s shape.</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Too many dimensions.&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkdim</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">ndim</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">numpy_coords</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Creating a coordinate sequence object because it is easier to</span>
+        <span class="c1"># set the points using GEOSCoordSeq.__setitem__().</span>
+        <span class="n">cs</span> <span class="o">=</span> <span class="n">GEOSCoordSeq</span><span class="p">(</span><span class="n">capi</span><span class="o">.</span><span class="n">create_cs</span><span class="p">(</span><span class="n">ncoords</span><span class="p">,</span> <span class="n">ndim</span><span class="p">),</span> <span class="n">z</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncoords</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">numpy_coords</span><span class="p">:</span>
+                <span class="n">cs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">Point</span><span class="p">):</span>
+                <span class="n">cs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">tuple</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="c1"># Calling the base geometry initialization with the returned pointer</span>
+        <span class="c1">#  from the function.</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">LineString</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_func</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">ptr</span><span class="p">),</span> <span class="n">srid</span><span class="o">=</span><span class="n">srid</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Allows iteration over this LineString.&quot;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Returns the number of points in this LineString.&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_single_external</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="n">_get_single_internal</span> <span class="o">=</span> <span class="n">_get_single_external</span>
+
+    <span class="k">def</span> <span class="nf">_set_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">items</span><span class="p">):</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cs</span><span class="o">.</span><span class="n">dims</span>
+        <span class="n">hasz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cs</span><span class="o">.</span><span class="n">hasz</span>  <span class="c1"># I don&#39;t understand why these are different</span>
+
+        <span class="c1"># create a new coordinate sequence and populate accordingly</span>
+        <span class="n">cs</span> <span class="o">=</span> <span class="n">GEOSCoordSeq</span><span class="p">(</span><span class="n">capi</span><span class="o">.</span><span class="n">create_cs</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">ndim</span><span class="p">),</span> <span class="n">z</span><span class="o">=</span><span class="n">hasz</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">items</span><span class="p">):</span>
+            <span class="n">cs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span>
+
+        <span class="n">ptr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_func</span><span class="p">(</span><span class="n">cs</span><span class="o">.</span><span class="n">ptr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ptr</span><span class="p">:</span>
+            <span class="n">capi</span><span class="o">.</span><span class="n">destroy_geom</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ptr</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ptr</span> <span class="o">=</span> <span class="n">ptr</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_post_init</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">srid</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># can this happen?</span>
+            <span class="k">raise</span> <span class="n">GEOSException</span><span class="p">(</span><span class="s1">&#39;Geometry resulting from slice deletion was invalid.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkindex</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">_checkdim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">dim</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Dimension mismatch.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># #### Sequence Properties ####</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">tuple</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Returns a tuple version of the geometry from the coordinate sequence.&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cs</span><span class="o">.</span><span class="n">tuple</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="nb">tuple</span>
+
+    <span class="k">def</span> <span class="nf">_listarr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Internal routine that returns a sequence (list) corresponding with</span>
+<span class="sd">        the given function.  Will return a numpy array if possible.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lst</span> <span class="o">=</span> <span class="p">[</span><span class="n">func</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">))]</span>
+        <span class="k">if</span> <span class="n">numpy</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span>  <span class="c1"># ARRRR!</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">lst</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">array</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Returns a numpy array for the LineString.&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_listarr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cs</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">x</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Returns a list or numpy array of the X variable.&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_listarr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cs</span><span class="o">.</span><span class="n">getX</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">y</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Returns a list or numpy array of the Y variable.&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_listarr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cs</span><span class="o">.</span><span class="n">getY</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">z</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="s2">&quot;Returns a list or numpy array of the Z variable.&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">hasz</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_listarr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cs</span><span class="o">.</span><span class="n">getZ</span><span class="p">)</span></div>
+
+
+<span class="c1"># LinearRings are LineStrings used within Polygons.</span>
+<div class="viewcode-block" id="LinearRing"><a class="viewcode-back" href="../../../../../ref/contrib/gis/geos.html#django.contrib.gis.geos.LinearRing">[docs]</a><span class="k">class</span> <span class="nc">LinearRing</span><span class="p">(</span><span class="n">LineString</span><span class="p">):</span>
+    <span class="n">_minlength</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">_init_func</span> <span class="o">=</span> <span class="n">capi</span><span class="o">.</span><span class="n">create_linearring</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      
+        
+          <div class="yui-b" id="sidebar">
+            
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3>Browse</h3>
+  <ul>
+    
+    
+  </ul>
+  <h3>You are here:</h3>
+  <ul>
+      <li>
+        <a href="../../../../../index.html">Django 1.10.6.dev20170223092614 documentation</a>
+        
+          <ul><li><a href="../../../../index.html">Module code</a>
+        
+          <ul><li><a href="../../../../django.html">django</a>
+        
+        <ul><li>django.contrib.gis.geos.linestring</li></ul>
+        </li></ul></li></ul>
+      </li>
+  </ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+              <h3>Last update:</h3>
+              <p class="topless">Feb 23, 2017</p>
+          </div>
+        
+      
+    </div>
+
+    <div id="ft">
+      <div class="nav">
+    <a href="../../../../index.html" title="Module code" accesskey="U">up</a></div>
+    </div>
+  </div>
+
+      <div class="clearer"></div>
+    </div>
+  </body>
+</html>

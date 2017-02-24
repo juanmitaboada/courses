@@ -1,0 +1,594 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>django.contrib.gis.db.models.functions &#8212; Django 1.10.6.dev20170223092614 documentation</title>
+    
+    <link rel="stylesheet" href="../../../../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../../../',
+        VERSION:     '1.10.6.dev20170223092614',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../../search.html" />
+
+
+
+ 
+<script type="text/javascript" src="../../../../../../templatebuiltins.js"></script>
+<script type="text/javascript">
+(function($) {
+    if (!django_template_builtins) {
+       // templatebuiltins.js missing, do nothing.
+       return;
+    }
+    $(document).ready(function() {
+        // Hyperlink Django template tags and filters
+        var base = "../../../../../../ref/templates/builtins.html";
+        if (base == "#") {
+            // Special case for builtins.html itself
+            base = "";
+        }
+        // Tags are keywords, class '.k'
+        $("div.highlight\\-html\\+django span.k").each(function(i, elem) {
+             var tagname = $(elem).text();
+             if ($.inArray(tagname, django_template_builtins.ttags) != -1) {
+                 var fragment = tagname.replace(/_/, '-');
+                 $(elem).html("<a href='" + base + "#" + fragment + "'>" + tagname + "</a>");
+             }
+        });
+        // Filters are functions, class '.nf'
+        $("div.highlight\\-html\\+django span.nf").each(function(i, elem) {
+             var filtername = $(elem).text();
+             if ($.inArray(filtername, django_template_builtins.tfilters) != -1) {
+                 var fragment = filtername.replace(/_/, '-');
+                 $(elem).html("<a href='" + base + "#" + fragment + "'>" + filtername + "</a>");
+             }
+        });
+    });
+})(jQuery);
+</script>
+
+
+  </head>
+  <body role="document">
+
+    <div class="document">
+  <div id="custom-doc" class="yui-t6">
+    <div id="hd">
+      <h1><a href="../../../../../../index.html">Django 1.10.6.dev20170223092614 documentation</a></h1>
+      <div id="global-nav">
+        <a title="Home page" href="../../../../../../index.html">Home</a>  |
+        <a title="Table of contents" href="../../../../../../contents.html">Table of contents</a>  |
+        <a title="Global index" href="../../../../../../genindex.html">Index</a>  |
+        <a title="Module index" href="../../../../../../py-modindex.html">Modules</a>
+      </div>
+      <div class="nav">
+    <a href="../../../../../index.html" title="Module code" accesskey="U">up</a></div>
+    </div>
+
+    <div id="bd">
+      <div id="yui-main">
+        <div class="yui-b">
+          <div class="yui-g" id="_modules-django-contrib-gis-db-models-functions">
+            
+  <h1>Source code for django.contrib.gis.db.models.functions</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">decimal</span> <span class="k">import</span> <span class="n">Decimal</span>
+
+<span class="kn">from</span> <span class="nn">django.contrib.gis.db.models.fields</span> <span class="k">import</span> <span class="n">GeometryField</span>
+<span class="kn">from</span> <span class="nn">django.contrib.gis.db.models.sql</span> <span class="k">import</span> <span class="n">AreaField</span>
+<span class="kn">from</span> <span class="nn">django.contrib.gis.measure</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">Area</span> <span class="k">as</span> <span class="n">AreaMeasure</span><span class="p">,</span> <span class="n">Distance</span> <span class="k">as</span> <span class="n">DistanceMeasure</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">django.core.exceptions</span> <span class="k">import</span> <span class="n">FieldError</span>
+<span class="kn">from</span> <span class="nn">django.db.models</span> <span class="k">import</span> <span class="n">BooleanField</span><span class="p">,</span> <span class="n">FloatField</span><span class="p">,</span> <span class="n">IntegerField</span><span class="p">,</span> <span class="n">TextField</span>
+<span class="kn">from</span> <span class="nn">django.db.models.expressions</span> <span class="k">import</span> <span class="n">Func</span><span class="p">,</span> <span class="n">Value</span>
+<span class="kn">from</span> <span class="nn">django.utils</span> <span class="k">import</span> <span class="n">six</span>
+
+<span class="n">NUMERIC_TYPES</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span> <span class="o">+</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">Decimal</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">GeoFunc</span><span class="p">(</span><span class="n">Func</span><span class="p">):</span>
+    <span class="n">function</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">geom_param_pos</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;output_field&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">extra</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_field_class</span><span class="p">:</span>
+            <span class="n">extra</span><span class="p">[</span><span class="s1">&#39;output_field&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_field_class</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">srid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">geom_param_pos</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="s1">&#39;srid&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">expr</span><span class="o">.</span><span class="n">srid</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">expr</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">srid</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="n">FieldError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">as_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">function</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">spatial_function_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">resolve_expression</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">resolve_expression</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">base_srid</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">srid</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">base_srid</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Geometry functions can only operate on geometric content.&quot;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="n">expr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">source_expressions</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">GeomValue</span><span class="p">)</span> <span class="ow">and</span> <span class="n">expr</span><span class="o">.</span><span class="n">srid</span> <span class="o">!=</span> <span class="n">base_srid</span><span class="p">:</span>
+                <span class="c1"># Automatic SRID conversion so objects are comparable</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">source_expressions</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">base_srid</span><span class="p">)</span><span class="o">.</span><span class="n">resolve_expression</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span> <span class="nf">_handle_param</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">check_types</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s1">&#39;resolve_expression&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">check_types</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">check_types</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;The </span><span class="si">%s</span><span class="s2"> parameter has the wrong type: should be </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="n">param_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">check_types</span><span class="p">))</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">class</span> <span class="nc">GeomValue</span><span class="p">(</span><span class="n">Value</span><span class="p">):</span>
+    <span class="n">geography</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">srid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">srid</span>
+
+    <span class="k">def</span> <span class="nf">as_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%%</span><span class="s1">s, </span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">from_text</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">srid</span><span class="p">),</span> <span class="p">[</span><span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">Adapter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)]</span>
+
+    <span class="k">def</span> <span class="nf">as_mysql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">(</span><span class="si">%%</span><span class="s1">s)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">from_text</span><span class="p">),</span> <span class="p">[</span><span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">Adapter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)]</span>
+
+    <span class="k">def</span> <span class="nf">as_postgresql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">geography</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">Adapter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">geography</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">geography</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">Adapter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">GeomValue</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">GeoFuncWithGeoParam</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">geom</span><span class="p">,</span> <span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">geom</span><span class="p">,</span> <span class="s1">&#39;srid&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">geom</span><span class="o">.</span><span class="n">srid</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Please provide a geometry attribute with a defined SRID.&quot;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">GeoFuncWithGeoParam</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">expression</span><span class="p">,</span> <span class="n">GeomValue</span><span class="p">(</span><span class="n">geom</span><span class="p">),</span> <span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">SQLiteDecimalToFloatMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    By default, Decimal values are converted to str by the SQLite backend, which</span>
+<span class="sd">    is not acceptable by the GIS functions expecting numeric values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">as_sqlite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">expr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_source_expressions</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">Decimal</span><span class="p">):</span>
+                <span class="n">expr</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SQLiteDecimalToFloatMixin</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">OracleToleranceMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">tolerance</span> <span class="o">=</span> <span class="mf">0.05</span>
+
+    <span class="k">def</span> <span class="nf">as_oracle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="n">tol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tolerance&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tolerance</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%%</span><span class="s2">(function)s(</span><span class="si">%%</span><span class="s2">(expressions)s, </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="n">tol</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">OracleToleranceMixin</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Area"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Area">[docs]</a><span class="k">class</span> <span class="nc">Area</span><span class="p">(</span><span class="n">OracleToleranceMixin</span><span class="p">,</span> <span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">AreaField</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">as_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">geography</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output_field</span><span class="o">.</span><span class="n">area_att</span> <span class="o">=</span> <span class="s1">&#39;sq_m&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Getting the area units of the geographic field.</span>
+            <span class="n">source_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_source_fields</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_fields</span><span class="p">):</span>
+                <span class="n">source_field</span> <span class="o">=</span> <span class="n">source_fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">source_field</span><span class="o">.</span><span class="n">geodetic</span><span class="p">(</span><span class="n">connection</span><span class="p">):</span>
+                    <span class="c1"># TODO: Do we want to support raw number areas for geodetic fields?</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Area on geodetic coordinate systems not supported.&#39;</span><span class="p">)</span>
+                <span class="n">units_name</span> <span class="o">=</span> <span class="n">source_field</span><span class="o">.</span><span class="n">units_name</span><span class="p">(</span><span class="n">connection</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">units_name</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">output_field</span><span class="o">.</span><span class="n">area_att</span> <span class="o">=</span> <span class="n">AreaMeasure</span><span class="o">.</span><span class="n">unit_attname</span><span class="p">(</span><span class="n">units_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Area</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">as_oracle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_field</span> <span class="o">=</span> <span class="n">AreaField</span><span class="p">(</span><span class="s1">&#39;sq_m&#39;</span><span class="p">)</span>  <span class="c1"># Oracle returns area in units of meters.</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Area</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_oracle</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AsGeoJSON"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.AsGeoJSON">[docs]</a><span class="k">class</span> <span class="nc">AsGeoJSON</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">TextField</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="n">expressions</span> <span class="o">=</span> <span class="p">[</span><span class="n">expression</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">precision</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">expressions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="s1">&#39;precision&#39;</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span><span class="p">))</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">crs</span> <span class="ow">and</span> <span class="n">bbox</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="k">elif</span> <span class="n">bbox</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">crs</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="n">options</span><span class="p">:</span>
+            <span class="n">expressions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AsGeoJSON</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AsGML"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.AsGML">[docs]</a><span class="k">class</span> <span class="nc">AsGML</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">geom_param_pos</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">TextField</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="n">expressions</span> <span class="o">=</span> <span class="p">[</span><span class="n">version</span><span class="p">,</span> <span class="n">expression</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">precision</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">expressions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="s1">&#39;precision&#39;</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AsGML</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AsKML"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.AsKML">[docs]</a><span class="k">class</span> <span class="nc">AsKML</span><span class="p">(</span><span class="n">AsGML</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">as_sqlite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="c1"># No version parameter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">AsKML</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AsSVG"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.AsSVG">[docs]</a><span class="k">class</span> <span class="nc">AsSVG</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">TextField</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">relative</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="n">relative</span> <span class="o">=</span> <span class="n">relative</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">relative</span><span class="p">,</span> <span class="s1">&#39;resolve_expression&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">relative</span><span class="p">)</span>
+        <span class="n">expressions</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">expression</span><span class="p">,</span>
+            <span class="n">relative</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="s1">&#39;precision&#39;</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">AsSVG</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BoundingCircle"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.BoundingCircle">[docs]</a><span class="k">class</span> <span class="nc">BoundingCircle</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">num_seg</span><span class="o">=</span><span class="mi">48</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BoundingCircle</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">expression</span><span class="p">,</span> <span class="n">num_seg</span><span class="p">],</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Centroid"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Centroid">[docs]</a><span class="k">class</span> <span class="nc">Centroid</span><span class="p">(</span><span class="n">OracleToleranceMixin</span><span class="p">,</span> <span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="Difference"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Difference">[docs]</a><span class="k">class</span> <span class="nc">Difference</span><span class="p">(</span><span class="n">OracleToleranceMixin</span><span class="p">,</span> <span class="n">GeoFuncWithGeoParam</span><span class="p">):</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">2</span></div>
+
+
+<span class="k">class</span> <span class="nc">DistanceResultMixin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">source_is_geography</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_source_fields</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">geography</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">srid</span> <span class="o">==</span> <span class="mi">4326</span>
+
+    <span class="k">def</span> <span class="nf">convert_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">connection</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">geo_field</span> <span class="o">=</span> <span class="n">GeometryField</span><span class="p">(</span><span class="n">srid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">srid</span><span class="p">)</span>  <span class="c1"># Fake field to get SRID info</span>
+        <span class="k">if</span> <span class="n">geo_field</span><span class="o">.</span><span class="n">geodetic</span><span class="p">(</span><span class="n">connection</span><span class="p">):</span>
+            <span class="n">dist_att</span> <span class="o">=</span> <span class="s1">&#39;m&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="n">geo_field</span><span class="o">.</span><span class="n">units_name</span><span class="p">(</span><span class="n">connection</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">units</span><span class="p">:</span>
+                <span class="n">dist_att</span> <span class="o">=</span> <span class="n">DistanceMeasure</span><span class="o">.</span><span class="n">unit_attname</span><span class="p">(</span><span class="n">units</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dist_att</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">dist_att</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">DistanceMeasure</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">dist_att</span><span class="p">:</span> <span class="n">value</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">value</span>
+
+
+<div class="viewcode-block" id="Distance"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Distance">[docs]</a><span class="k">class</span> <span class="nc">Distance</span><span class="p">(</span><span class="n">DistanceResultMixin</span><span class="p">,</span> <span class="n">OracleToleranceMixin</span><span class="p">,</span> <span class="n">GeoFuncWithGeoParam</span><span class="p">):</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">FloatField</span>
+    <span class="n">spheroid</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expr1</span><span class="p">,</span> <span class="n">expr2</span><span class="p">,</span> <span class="n">spheroid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="n">expressions</span> <span class="o">=</span> <span class="p">[</span><span class="n">expr1</span><span class="p">,</span> <span class="n">expr2</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">spheroid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">spheroid</span> <span class="o">=</span> <span class="n">spheroid</span>
+            <span class="n">expressions</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">spheroid</span><span class="p">,</span> <span class="s1">&#39;spheroid&#39;</span><span class="p">,</span> <span class="nb">bool</span><span class="p">),)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Distance</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">as_postgresql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="n">geo_field</span> <span class="o">=</span> <span class="n">GeometryField</span><span class="p">(</span><span class="n">srid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">srid</span><span class="p">)</span>  <span class="c1"># Fake field to get SRID info</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_is_geography</span><span class="p">():</span>
+            <span class="c1"># Set parameters as geography if base field is geography</span>
+            <span class="k">for</span> <span class="n">pos</span><span class="p">,</span> <span class="n">expr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">geom_param_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:],</span> <span class="n">start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">geom_param_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">GeomValue</span><span class="p">):</span>
+                    <span class="n">expr</span><span class="o">.</span><span class="n">geography</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">geo_field</span><span class="o">.</span><span class="n">geodetic</span><span class="p">(</span><span class="n">connection</span><span class="p">):</span>
+            <span class="c1"># Geometry fields with geodetic (lon/lat) coordinates need special distance functions</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spheroid</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">function</span> <span class="o">=</span> <span class="s1">&#39;ST_Distance_Spheroid&#39;</span>  <span class="c1"># More accurate, resource intensive</span>
+                <span class="c1"># Replace boolean param by the real spheroid of the base field</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">Value</span><span class="p">(</span><span class="n">geo_field</span><span class="o">.</span><span class="n">_spheroid</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">function</span> <span class="o">=</span> <span class="s1">&#39;ST_Distance_Sphere&#39;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Distance</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">as_oracle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spheroid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Distance</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_oracle</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Envelope"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Envelope">[docs]</a><span class="k">class</span> <span class="nc">Envelope</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="ForceRHR"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.ForceRHR">[docs]</a><span class="k">class</span> <span class="nc">ForceRHR</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="GeoHash"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.GeoHash">[docs]</a><span class="k">class</span> <span class="nc">GeoHash</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">TextField</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="n">expressions</span> <span class="o">=</span> <span class="p">[</span><span class="n">expression</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">precision</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">expressions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">precision</span><span class="p">,</span> <span class="s1">&#39;precision&#39;</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">GeoHash</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Intersection"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Intersection">[docs]</a><span class="k">class</span> <span class="nc">Intersection</span><span class="p">(</span><span class="n">OracleToleranceMixin</span><span class="p">,</span> <span class="n">GeoFuncWithGeoParam</span><span class="p">):</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">2</span></div>
+
+
+<div class="viewcode-block" id="IsValid"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.IsValid">[docs]</a><span class="k">class</span> <span class="nc">IsValid</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">BooleanField</span></div>
+
+
+<div class="viewcode-block" id="Length"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Length">[docs]</a><span class="k">class</span> <span class="nc">Length</span><span class="p">(</span><span class="n">DistanceResultMixin</span><span class="p">,</span> <span class="n">OracleToleranceMixin</span><span class="p">,</span> <span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">FloatField</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expr1</span><span class="p">,</span> <span class="n">spheroid</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spheroid</span> <span class="o">=</span> <span class="n">spheroid</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Length</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">expr1</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">as_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="n">geo_field</span> <span class="o">=</span> <span class="n">GeometryField</span><span class="p">(</span><span class="n">srid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">srid</span><span class="p">)</span>  <span class="c1"># Fake field to get SRID info</span>
+        <span class="k">if</span> <span class="n">geo_field</span><span class="o">.</span><span class="n">geodetic</span><span class="p">(</span><span class="n">connection</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">connection</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">supports_length_geodetic</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;This backend doesn&#39;t support Length on geodetic fields&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Length</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">as_postgresql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="n">geo_field</span> <span class="o">=</span> <span class="n">GeometryField</span><span class="p">(</span><span class="n">srid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">srid</span><span class="p">)</span>  <span class="c1"># Fake field to get SRID info</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_is_geography</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spheroid</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">geo_field</span><span class="o">.</span><span class="n">geodetic</span><span class="p">(</span><span class="n">connection</span><span class="p">):</span>
+            <span class="c1"># Geometry fields with geodetic (lon/lat) coordinates need length_spheroid</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">function</span> <span class="o">=</span> <span class="s1">&#39;ST_Length_Spheroid&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Value</span><span class="p">(</span><span class="n">geo_field</span><span class="o">.</span><span class="n">_spheroid</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dim</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">dim</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_source_fields</span><span class="p">()</span> <span class="k">if</span> <span class="n">f</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dim</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">function</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">length3d</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Length</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">as_sqlite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="n">geo_field</span> <span class="o">=</span> <span class="n">GeometryField</span><span class="p">(</span><span class="n">srid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">srid</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">geo_field</span><span class="o">.</span><span class="n">geodetic</span><span class="p">(</span><span class="n">connection</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spheroid</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">function</span> <span class="o">=</span> <span class="s1">&#39;GeodesicLength&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">function</span> <span class="o">=</span> <span class="s1">&#39;GreatCircleLength&#39;</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Length</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MakeValid"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.MakeValid">[docs]</a><span class="k">class</span> <span class="nc">MakeValid</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="MemSize"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.MemSize">[docs]</a><span class="k">class</span> <span class="nc">MemSize</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">IntegerField</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="NumGeometries"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.NumGeometries">[docs]</a><span class="k">class</span> <span class="nc">NumGeometries</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">IntegerField</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="NumPoints"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.NumPoints">[docs]</a><span class="k">class</span> <span class="nc">NumPoints</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">IntegerField</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">as_sqlite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">geom_param_pos</span><span class="p">]</span><span class="o">.</span><span class="n">output_field</span><span class="o">.</span><span class="n">geom_type</span> <span class="o">!=</span> <span class="s1">&#39;LINESTRING&#39;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;SpatiaLite NumPoints can only operate on LineString content&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">NumPoints</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Perimeter"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Perimeter">[docs]</a><span class="k">class</span> <span class="nc">Perimeter</span><span class="p">(</span><span class="n">DistanceResultMixin</span><span class="p">,</span> <span class="n">OracleToleranceMixin</span><span class="p">,</span> <span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">output_field_class</span> <span class="o">=</span> <span class="n">FloatField</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">as_postgresql</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="n">geo_field</span> <span class="o">=</span> <span class="n">GeometryField</span><span class="p">(</span><span class="n">srid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">srid</span><span class="p">)</span>  <span class="c1"># Fake field to get SRID info</span>
+        <span class="k">if</span> <span class="n">geo_field</span><span class="o">.</span><span class="n">geodetic</span><span class="p">(</span><span class="n">connection</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_is_geography</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;ST_Perimeter cannot use a non-projected non-geography field.&quot;</span><span class="p">)</span>
+        <span class="n">dim</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">dim</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_source_fields</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">dim</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">function</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">perimeter3d</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Perimeter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">as_sqlite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="n">geo_field</span> <span class="o">=</span> <span class="n">GeometryField</span><span class="p">(</span><span class="n">srid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">srid</span><span class="p">)</span>  <span class="c1"># Fake field to get SRID info</span>
+        <span class="k">if</span> <span class="n">geo_field</span><span class="o">.</span><span class="n">geodetic</span><span class="p">(</span><span class="n">connection</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Perimeter cannot use a non-projected field.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Perimeter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sql</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PointOnSurface"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.PointOnSurface">[docs]</a><span class="k">class</span> <span class="nc">PointOnSurface</span><span class="p">(</span><span class="n">OracleToleranceMixin</span><span class="p">,</span> <span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="Reverse"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Reverse">[docs]</a><span class="k">class</span> <span class="nc">Reverse</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="Scale"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Scale">[docs]</a><span class="k">class</span> <span class="nc">Scale</span><span class="p">(</span><span class="n">SQLiteDecimalToFloatMixin</span><span class="p">,</span> <span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="n">expressions</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">expression</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">NUMERIC_TYPES</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">NUMERIC_TYPES</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">z</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">expressions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="n">NUMERIC_TYPES</span><span class="p">))</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Scale</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SnapToGrid"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.SnapToGrid">[docs]</a><span class="k">class</span> <span class="nc">SnapToGrid</span><span class="p">(</span><span class="n">SQLiteDecimalToFloatMixin</span><span class="p">,</span> <span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="n">nargs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">expressions</span> <span class="o">=</span> <span class="p">[</span><span class="n">expression</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">nargs</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">expressions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">NUMERIC_TYPES</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">nargs</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="c1"># Reverse origin and size param ordering</span>
+            <span class="n">expressions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">NUMERIC_TYPES</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">:]]</span>
+            <span class="p">)</span>
+            <span class="n">expressions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+                <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">NUMERIC_TYPES</span><span class="p">)</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]]</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Must provide 1, 2, or 4 arguments to `SnapToGrid`.&#39;</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">SnapToGrid</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SymDifference"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.SymDifference">[docs]</a><span class="k">class</span> <span class="nc">SymDifference</span><span class="p">(</span><span class="n">OracleToleranceMixin</span><span class="p">,</span> <span class="n">GeoFuncWithGeoParam</span><span class="p">):</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">2</span></div>
+
+
+<div class="viewcode-block" id="Transform"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Transform">[docs]</a><span class="k">class</span> <span class="nc">Transform</span><span class="p">(</span><span class="n">GeoFunc</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">srid</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">):</span>
+        <span class="n">expressions</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">expression</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_handle_param</span><span class="p">(</span><span class="n">srid</span><span class="p">,</span> <span class="s1">&#39;srid&#39;</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">Transform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">expressions</span><span class="p">,</span> <span class="o">**</span><span class="n">extra</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">srid</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Make srid the resulting srid of the transformation</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">geom_param_pos</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">convert_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">connection</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Transform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">convert_value</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">expression</span><span class="p">,</span> <span class="n">connection</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">postgis</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">value</span><span class="o">.</span><span class="n">srid</span><span class="p">:</span>
+            <span class="c1"># Some backends do not set the srid on the returning geometry</span>
+            <span class="n">value</span><span class="o">.</span><span class="n">srid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srid</span>
+        <span class="k">return</span> <span class="n">value</span></div>
+
+
+<div class="viewcode-block" id="Translate"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Translate">[docs]</a><span class="k">class</span> <span class="nc">Translate</span><span class="p">(</span><span class="n">Scale</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">as_sqlite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">):</span>
+        <span class="n">func_name</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">spatial_function_name</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">func_name</span> <span class="o">==</span> <span class="s1">&#39;ST_Translate&#39;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="c1"># Always provide the z parameter for ST_Translate (Spatialite &gt;= 3.1)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">func_name</span> <span class="o">==</span> <span class="s1">&#39;ShiftCoords&#39;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source_expressions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;This version of Spatialite doesn&#39;t support 3D&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Translate</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">as_sqlite</span><span class="p">(</span><span class="n">compiler</span><span class="p">,</span> <span class="n">connection</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Union"><a class="viewcode-back" href="../../../../../../ref/contrib/gis/functions.html#django.contrib.gis.db.models.functions.Union">[docs]</a><span class="k">class</span> <span class="nc">Union</span><span class="p">(</span><span class="n">OracleToleranceMixin</span><span class="p">,</span> <span class="n">GeoFuncWithGeoParam</span><span class="p">):</span>
+    <span class="n">arity</span> <span class="o">=</span> <span class="mi">2</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      
+        
+          <div class="yui-b" id="sidebar">
+            
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3>Browse</h3>
+  <ul>
+    
+    
+  </ul>
+  <h3>You are here:</h3>
+  <ul>
+      <li>
+        <a href="../../../../../../index.html">Django 1.10.6.dev20170223092614 documentation</a>
+        
+          <ul><li><a href="../../../../../index.html">Module code</a>
+        
+          <ul><li><a href="../../../../../django.html">django</a>
+        
+        <ul><li>django.contrib.gis.db.models.functions</li></ul>
+        </li></ul></li></ul>
+      </li>
+  </ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+              <h3>Last update:</h3>
+              <p class="topless">Feb 23, 2017</p>
+          </div>
+        
+      
+    </div>
+
+    <div id="ft">
+      <div class="nav">
+    <a href="../../../../../index.html" title="Module code" accesskey="U">up</a></div>
+    </div>
+  </div>
+
+      <div class="clearer"></div>
+    </div>
+  </body>
+</html>
